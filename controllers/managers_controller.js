@@ -45,7 +45,7 @@ module.exports = {
         }
     },
 
-    loginManager: async (req, res) => {
+   /*  loginManager: async (req, res) => {
         try {
             const { manager_email, manager_password } = req.body;
 
@@ -101,6 +101,66 @@ module.exports = {
             });
         }
     },
+ */
+
+    loginManager: async (req, res) => {
+        try {
+          const { manager_email, manager_password } = req.body;
+    
+          const manager = await Manager.findOne({ manager_email });
+    
+          if (!manager) {
+            throw new Error("bad creditians");
+          }
+    
+          const equal = await bcrypt.compare(manager_password, manager.manager_password);
+    
+          if (!equal) {
+            throw new Error("bad creditians");
+          }
+    
+          // manager login success
+    
+          let payload = {
+            manager: manager._id,
+          };
+    
+          const token = jwt.sign(payload, process.env.JWT_SECRET, {
+            expiresIn: 10800,
+          });
+        
+          let oldTokens = manager.tokens || [];
+        
+          if (oldTokens.length) {
+            oldTokens = oldTokens.filter(t => {
+              const timeDiff = (Date.now() - parseInt(t.signedAt)) / 1000;
+              if (timeDiff < 1000) {
+                return t;
+              }
+            });
+          }
+        
+          await Manager.findByIdAndUpdate(manager._id, {
+            tokens: [...oldTokens, { token, signedAt: Date.now().toString() }],
+          }).exec();
+    
+          return res.status(201).json({
+            success: true,
+            message: "manager login seccessfully",
+            token,
+            manager: {
+              _id:manager._id,
+              manager_name: manager.manager_name,
+              manager_email: manager.manager_email,
+            },
+          });
+        } catch (error) {
+          return res.status(401).json({
+            message: "error in login request",
+            error: error.message,
+          });
+        }
+      },
 
     logoutManager: async (req, res) => {
         if (req.headers && req.headers.authorization) {

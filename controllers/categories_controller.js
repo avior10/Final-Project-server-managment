@@ -18,6 +18,24 @@ module.exports = {
         }
     },
 
+    getById: async (req, res) => {
+        try {
+            const id = req.params.category_id;
+            const category = await Category.findById(id);
+
+            return res.status(200).json({
+                success: true,
+                message: `success to finf category by id - for managers`,
+                category
+            });
+        } catch (error) {
+            return res.status(500).json({
+                message: `error to get category by id - for managers`,
+                error: error.message,
+            });
+        }
+    },
+
     addCategory: async (req, res) => {
         try {
             const { category_name } = req.body;
